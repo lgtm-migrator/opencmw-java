@@ -35,12 +35,8 @@ import org.zeromq.ZContext;
 import org.zeromq.ZMQ;
 import org.zeromq.ZMsg;
 
-import io.opencmw.EventStore;
-import io.opencmw.Filter;
-import io.opencmw.MimeType;
+import io.opencmw.*;
 import io.opencmw.OpenCmwProtocol.Command;
-import io.opencmw.QueryParameterParser;
-import io.opencmw.RingBufferEvent;
 import io.opencmw.client.cmwlight.CmwLightDataSource;
 import io.opencmw.client.rest.RestDataSource;
 import io.opencmw.domain.BinaryData;
@@ -122,6 +118,7 @@ public class DataSourcePublisher implements Runnable, Closeable {
     private final RbacProvider rbacProvider;
     private final EventStore publicationTarget;
     private final AtomicReference<Thread> threadReference = new AtomicReference<>();
+    protected int droppedEvents = 0;
 
     public DataSourcePublisher(final RbacProvider rbacProvider, final ExecutorService executorService, final String... clientId) {
         this(null, null, rbacProvider, executorService, clientId);
@@ -294,7 +291,7 @@ public class DataSourcePublisher implements Runnable, Closeable {
             final String reqId = requireNonNull(reply.pollFirst()).getString(UTF_8);
             final ThePromisedFuture<?, ?> returnFuture = requests.get(reqId);
             assert returnFuture != null : "no future available for reqId:" + reqId;
-            rawDataEventStore.getRingBuffer().publishEvent((event, sequence) -> {
+            final boolean success = rawDataEventStore.getRingBuffer().tryPublishEvent((event, sequence) -> {
                 if (returnFuture.getReplyType() != Command.SUBSCRIBE) { // remove entries for one time replies
                     assert returnFuture.getInternalRequestID().equals(reqId)
                         : "requestID mismatch";
@@ -310,6 +307,10 @@ public class DataSourcePublisher implements Runnable, Closeable {
                 evtTypeFilter.updateType = returnFuture.requestType;
                 evtTypeFilter.property = URI.create(endpoint);
             });
+            if (!success) {
+                LOGGER.atWarn().addArgument(reqId).addArgument(returnFuture.endpoint).log("dropping event, slow deserialisation or raw data event handler - reqId:{}, endpoint:{}");
+                droppedEvents++;
+            }
         }
         return dataAvailable;
     }
@@ -395,7 +396,10 @@ public class DataSourcePublisher implements Runnable, Closeable {
         }
         // publish to external ring buffer
         if (publicationTarget != null) {
-            publicationTarget.getRingBuffer().publishEvent(this::publishToExternalStore, event, replyDomainObject, exceptionMsg);
+            if (!publicationTarget.getRingBuffer().tryPublishEvent(this::publishToExternalStore, event, replyDomainObject, exceptionMsg)) {
+                LOGGER.atWarn().addArgument(domainObject.future.internalRequestID).addArgument(domainObject.future.endpoint).log("dropping event, slow consumers on target event store - reqId:{}, endpoint:{}");
+                droppedEvents++;
+            }
         }
     }
 

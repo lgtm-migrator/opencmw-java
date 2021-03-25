@@ -288,7 +288,7 @@ class DataSourcePublisherBurstTest {
         // wait for the internal raw data event buffer to be empty
         final RingBuffer<RingBufferEvent> rawRingBuffer = dataSourcePublisher.getRawDataEventStore().getRingBuffer();
         Awaitility.await().atMost(Duration.ofSeconds(9)).until(() -> rawRingBuffer.getCursor() == rawRingBuffer.getMinimumGatingSequence() && eventStore.getRingBuffer().getCursor() == eventStore.getRingBuffer().getMinimumGatingSequence());
-        // LOGGER.atInfo().addArgument(dataSourcePublisher.droppedEvents).log("processed all messages, dropped {} mesages");
+        LOGGER.atInfo().addArgument(dataSourcePublisher.droppedEvents).log("processed all messages, dropped {} mesages");
         LOGGER.atInfo().addArgument(pingReceived.get()).addArgument(pingSent).addArgument(burstPacketsReceived.get()).addArgument(burstSent).log("pings: {}/{}, bursts: {}/{}");
 
         eventStore.stop();
