@@ -25,7 +25,7 @@
     #foreach($binaryData in $clipboardData)
         <div class="col">
             ## media content
-            <a class="image" href="/$serviceName$binaryData.getResourceName()">
+            <a class="image" href="/$serviceName$binaryData.getResourceName()?noMenu&sse">
                 <div class="mediaThumb">
                     <embed class="embedBinary" id="binaryData" src="$binaryData.getMimeData()" alt="$binaryData.getResourceName()"/>
                 </div>
@@ -34,7 +34,7 @@
             ## sub-title
             <small>
                 (<a class="link" href="/$serviceName$binaryData.getResourceName()?noMenu&longPolling">long-polling</a>,
-                <a class="link" href="/$serviceName$binaryData.getResourceName()?noMenu&sse">SSE</a>)
+                <a class="link" href="/$serviceName$binaryData.getResourceName()">static-image</a>)
             </small>
         </div>
     #end
