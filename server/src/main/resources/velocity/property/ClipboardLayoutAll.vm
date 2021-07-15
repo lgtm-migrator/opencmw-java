@@ -6,7 +6,7 @@
     .row { width: 100%; overflow: auto; }
     .row > * { float: left; }
     .row-3 .col { width: 32%; }
-    .row-3 .col:nth-child(3n+1) { margin: 0 1% 0 0;}
+    .row-3 .col:nth-child(3n+1) { margin: 0 1% 0 0; clear: left;}
     .row-3 .col:nth-child(3n+2) { margin: 0 1% 0 1%; }
     .row-3 .col:nth-child(3n+3) {margin: 0 0 0 1%; }
 </style>
